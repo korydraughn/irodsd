@@ -1,0 +1,7 @@
+name: Compile and Package (Debian)
+
+on: pull_request
+
+jobs:
+    compile_irods:
+        uses: korydraughn/irods_reusable_github_workflows/.github/workflows/build-irods-debian.yml@main
