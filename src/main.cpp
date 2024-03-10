@@ -12,7 +12,7 @@
 //     - The local directory must have the correct/expected structure/layout.
 //
 // - Runs as a normal application by default (just like the HTTP API).
-// - Admin must pass -d to deamonize the server.
+// - Admin must pass -d to daemonize the server.
 //
 // - Only the parent process can react to SIGHUP or signals that cause child processes to "do" something.
 //     - Admin can only communicate with parent process.
@@ -119,7 +119,7 @@ int main(int _argc, char* _argv[])
         ("jsonschema-file", po::value<std::string>(), "")
         ("dump-config-template", "")
         ("dump-default-jsonschema", "")
-        ("deamonize,d", "")
+        ("daemonize,d", "")
         ("pid-file", "")
         ("help,h", "")
         ("version,v", "");
@@ -174,9 +174,9 @@ int main(int _argc, char* _argv[])
         }
 #endif
 
-        // TODO If deamonizing the process fails, we should log it somewhere.
+        // TODO If daemonizing the process fails, we should log it somewhere.
         // Should this happen after loading the configuration?
-        if (vm.count("deamonize") > 0) {
+        if (vm.count("daemonize") > 0) {
             // TODO
         }
 
