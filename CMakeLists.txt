@@ -15,7 +15,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXE_LINKER_FLAGS_INIT "-rdynamic -Wl,--export-dynamic -Wl,--enable-new-dtags -Wl,--as-needed -Wl,-z,defs")
 set(CMAKE_EXE_LINKER_FLAGS_RELEASE_INIT "-Wl,--gc-sections -Wl,-z,combreloc")
 
-project(irods_project_template_cpp_client
+project(irodsd
   VERSION "${IRODS_CLIENT_VERSION}"
   LANGUAGES CXX)
 
@@ -47,7 +47,7 @@ if (IRODS_BUILD_WITH_WERROR)
   add_compile_options(-Werror)
 endif()
 
-set(IRODS_CLIENT_NAME "irods_cpp_client_example")
+set(IRODS_CLIENT_NAME "irodsd")
 
 add_executable(${IRODS_CLIENT_NAME}
   "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp")

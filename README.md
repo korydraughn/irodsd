@@ -1,2 +1,3 @@
-# irods_project_template_cpp_client
-A project template for creating iRODS clients using C++
+# iRODS 5.0 Experiments
+
+A space to experiment with different approaches for starting iRODS.
