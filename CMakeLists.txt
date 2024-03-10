@@ -69,4 +69,6 @@ target_link_libraries(
   ${IRODS_CLIENT_NAME}
   PRIVATE
   irods_client
-  "${IRODS_EXTERNALS_FULLPATH_FMT}/lib/libfmt.so")
+  "${IRODS_EXTERNALS_FULLPATH_BOOST}/lib/libboost_program_options.so"
+  "${IRODS_EXTERNALS_FULLPATH_FMT}/lib/libfmt.so"
+  rt)
