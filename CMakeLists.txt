@@ -52,6 +52,7 @@ set(IRODS_CLIENT_NAME "irodsd")
 add_executable(${IRODS_CLIENT_NAME}
   "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp")
 
+# Build irodsd (iRODS daemon).
 target_compile_definitions(
   ${IRODS_CLIENT_NAME}
   PRIVATE
@@ -72,3 +73,30 @@ target_link_libraries(
   "${IRODS_EXTERNALS_FULLPATH_BOOST}/lib/libboost_program_options.so"
   "${IRODS_EXTERNALS_FULLPATH_FMT}/lib/libfmt.so"
   rt)
+
+# Build irodsd child applications (i.e. control plane, agent factory, and delay server).
+foreach (IRODS_BINARY_NAME irodscp irodsaf irodsds)
+  add_executable(${IRODS_BINARY_NAME}
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/${IRODS_BINARY_NAME}.cpp")
+  
+  target_compile_definitions(
+    ${IRODS_BINARY_NAME}
+    PRIVATE
+    ${IRODS_COMPILE_DEFINITIONS}
+    ${IRODS_COMPILE_DEFINITIONS_PRIVATE})
+  
+  target_include_directories(
+    ${IRODS_BINARY_NAME}
+    PRIVATE
+    ${IRODS_INCLUDE_DIRS}
+    "${IRODS_EXTERNALS_FULLPATH_BOOST}/include"
+    "${IRODS_EXTERNALS_FULLPATH_FMT}/include")
+  
+  target_link_libraries(
+    ${IRODS_BINARY_NAME}
+    PRIVATE
+    irods_client
+    "${IRODS_EXTERNALS_FULLPATH_BOOST}/lib/libboost_program_options.so"
+    "${IRODS_EXTERNALS_FULLPATH_FMT}/lib/libfmt.so"
+    rt)
+endforeach()

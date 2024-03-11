@@ -203,37 +203,40 @@ int main(int _argc, char* _argv[])
         // - delay server salt
         
         // This message queue gives child processes a way to notify the parent process.
-        constexpr const auto* mq_name = "irods_config_derived_mq_name";
-        constexpr auto max_number_of_msg = 10; 
+        constexpr const auto* mq_name = "irodsd_mq";
+        constexpr auto max_number_of_msg = 1; 
         constexpr auto max_msg_size = 512; 
         boost::interprocess::message_queue::remove(mq_name);
         boost::interprocess::message_queue pproc_mq{
             boost::interprocess::create_only, mq_name, max_number_of_msg, max_msg_size};
 
-        // TODO Fork child processes.
-        // The child processes should probably be exec'd too.
-        // Each child process needs to communicate its status (i.e. init, ready, run, etc).
+        // Launch control plane.
+        auto pid_cp = fork();
+        if (0 == pid_cp) {
+            char pname[] = "irodscp";
+            char parent_mq_name[] = "irodsd_mq";
+            char* args[] = {pname, parent_mq_name, nullptr};
+            execv(pname, args);
+            _exit(1);
+        }
+        else if (-1 == pid_cp) {
+            fmt::print(stderr, "Error: could not launch control plane.\n");
+            return 1;
+        }
+        fmt::print("control plane pid = [{}]\n", pid_cp);
 
-        // Fork agent factory.
+        // Launch agent factory.
         auto pid_af = fork();
         if (0 == pid_af) {
-            // TODO Set up signal handlers.
-            // Only the parent should be able to trigger a config reload via SIGHUP.
-            // That means each child process must configure a message queue.
-            // Or, we learn how to use zeromq for broadcasting instructions. That is all fine and dandy,
-            // but it feels good to be able to select which children should be updated, etc.
-
-            // Send messages until the parent process sends the terminate signal.
-            while (true) {
-                constexpr std::string_view msg = "agent factory: still accepting new requests!";
-                pproc_mq.send(msg.data(), msg.size(), 0);
-                std::this_thread::sleep_for(std::chrono::seconds{3});
-            }
-
-            return 0;
+            char pname[] = "irodsaf";
+            char parent_mq_name[] = "irodsd_mq";
+            char* args[] = {pname, parent_mq_name, nullptr};
+            execv(pname, args);
+            _exit(1);
         }
         else if (-1 == pid_af) {
-            fmt::print(stderr, "Error: could not fork agent factory.\n");
+            kill(pid_cp, SIGTERM);
+            fmt::print(stderr, "Error: could not launch agent factory.\n");
             return 1;
         }
         fmt::print("agent factory pid = [{}]\n", pid_af);
@@ -241,83 +244,19 @@ int main(int _argc, char* _argv[])
         // Fork delay server if this server is the leader.
         auto pid_ds = fork();
         if (0 == pid_ds) {
-            // TODO Set up signal handlers.
-            // Only the parent should be able to trigger a config reload via SIGHUP.
-            // That means each child process must configure a message queue.
-            // Or, we learn how to use zeromq for broadcasting instructions. That is all fine and dandy,
-            // but it feels good to be able to select which children should be updated, etc.
-
-            // Send messages until the parent process sends the terminate signal.
-            while (true) {
-                constexpr std::string_view msg = "delay server: still processing delay rules!";
-                pproc_mq.send(msg.data(), msg.size(), 0);
-                std::this_thread::sleep_for(std::chrono::seconds{3});
-            }
-
-            return 0;
+            char pname[] = "irodsds";
+            char parent_mq_name[] = "irodsd_mq";
+            char* args[] = {pname, parent_mq_name, nullptr};
+            execv(pname, args);
+            _exit(1);
         }
         else if (-1 == pid_ds) {
             kill(pid_af, SIGTERM);
-            fmt::print(stderr, "Error: could not fork delay server.\n");
+            kill(pid_cp, SIGTERM);
+            fmt::print(stderr, "Error: could not launch delay server.\n");
             return 1;
         }
         fmt::print("delay server pid = [{}]\n", pid_ds);
-
-        // Fork control plane.
-        // Should this be forked first?
-        auto pid_cp = fork();
-        if (0 == pid_cp) {
-            // TODO Set up signal handlers.
-            // Only the parent should be able to trigger a config reload via SIGHUP.
-            // That means each child process must configure a message queue.
-            // Or, we learn how to use zeromq for broadcasting instructions. That is all fine and dandy,
-            // but it feels good to be able to select which children should be updated, etc.
-
-            using boost::asio::ip::tcp;
-
-            bool accepting_messages = true;
-
-            boost::asio::io_context io_context;
-
-            tcp::endpoint endpoint{tcp::v4(), 9000}; // This is 1248 is iRODS 5.0.
-            tcp::acceptor acceptor{io_context, endpoint};
-
-            while (true) {
-                if (!accepting_messages) {
-                    std::this_thread::sleep_for(std::chrono::seconds{1});
-                    continue;
-                }
-
-                tcp::iostream stream;
-
-                boost::system::error_code ec;
-                acceptor.accept(stream.socket(), ec);
-
-                if (ec) {
-                    fmt::print("Error: control plane: accept: {}\n", ec.message());
-                    continue;
-                }
-
-                std::string line;
-                if (std::getline(stream, line)) {
-                    fmt::print("control plane: received: [{}]\n", line);
-                }
-
-                if (line == "shutdown") {
-                    accepting_messages = false;
-                    pproc_mq.send(line.data(), line.size(), 0);
-                }
-            }
-
-            return 0;
-        }
-        else if (-1 == pid_cp) {
-            kill(pid_af, SIGTERM);
-            kill(pid_ds, SIGTERM);
-            fmt::print(stderr, "Error: could not fork control plane.\n");
-            return 1;
-        }
-        fmt::print("control plane pid = [{}]\n", pid_cp);
 
         // TODO Init signal handlers.
 
@@ -353,6 +292,8 @@ int main(int _argc, char* _argv[])
         waitpid(pid_cp, nullptr, 0);
         waitpid(pid_ds, nullptr, 0);
         waitpid(pid_af, nullptr, 0);
+
+        fmt::print("Shutdown complete.\n");
 
         return 0;
     }
