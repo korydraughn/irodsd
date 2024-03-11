@@ -17,6 +17,8 @@
 // - Only the parent process can react to SIGHUP or signals that cause child processes to "do" something.
 //     - Admin can only communicate with parent process.
 //
+// - No foreground mode.
+//
 // - ZeroMQ is pretty fancy and could be really promising if we take the time to learn it.
 //     - Pro: Supports several styles of message passing.
 //     - Pro: Is more powerful than traditional sockets. 
